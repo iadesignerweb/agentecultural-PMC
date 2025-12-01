@@ -4,22 +4,89 @@
 <meta charset="UTF-8">
 <title>Agente Municipal de Cultura-PE</title>
 
+<!-- PDF.js COMPLETO -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script>
+    pdfjsLib.GlobalWorkerOptions.workerSrc =
+        "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
+</script>
+
 <style>
-    body { font-family: Arial, sans-serif; background:#fff; margin:0; padding:0; }
-    header { text-align:center; padding:20px; font-size:26px; font-weight:bold; }
+    body {
+        font-family: Arial, sans-serif;
+        background:#fff;
+        margin:0; padding:0;
+    }
+    header {
+        text-align:center;
+        padding:20px;
+        font-size:26px;
+        font-weight:bold;
+    }
     #loginBox, #systemBox {
-        width:90%; max-width:700px; margin:40px auto;
-        border:1px solid #ccc; border-radius:8px;
-        background:#f9f9f9; padding:20px;
+        width:90%;
+        max-width:700px;
+        margin:40px auto;
+        border:1px solid #ccc;
+        border-radius:8px;
+        background:#f9f9f9;
+        padding:20px;
+        box-shadow:0 0 10px rgba(0,0,0,0.05);
     }
     input, button {
-        width:100%; padding:10px; margin-top:10px; font-size:16px;
+        width:100%;
+        padding:12px;
+        margin-top:10px;
+        font-size:16px;
+        border-radius:6px;
     }
-    table { width:100%; border-collapse:collapse; margin-top:20px; }
-    th, td { border:1px solid #ccc; padding:10px; text-align:left; }
-    th { background:#eee; }
-    button.small { width:auto; padding:6px 10px; font-size:14px; margin-right:4px; }
-    footer { text-align:center; margin-top:40px; padding:20px; color:#555; }
+    button {
+        cursor:pointer;
+        background:#007bff;
+        border:none;
+        color:white;
+        font-weight:bold;
+    }
+    button:hover {
+        background:#0056c1;
+    }
+    table {
+        width:100%;
+        border-collapse:collapse;
+        margin-top:20px;
+    }
+    th, td {
+        border:1px solid #ccc;
+        padding:10px;
+        text-align:left;
+    }
+    th { background:#eee; font-weight:bold; }
+
+    button.small {
+        width:auto;
+        padding:6px 12px;
+        margin:2px 0;
+        background:#444;
+        font-size:14px;
+    }
+    button.small:hover {
+        background:#222;
+    }
+
+    footer {
+        text-align:center;
+        margin-top:40px;
+        padding:20px;
+        color:#555;
+        font-size:14px;
+    }
+
+    /* MOBILE */
+    @media (max-width:600px) {
+        header { font-size:22px; }
+        th, td { font-size:14px; }
+        button.small { font-size:12px; padding:5px 8px; }
+    }
 </style>
 
 </head>
@@ -57,15 +124,13 @@
 
 <footer>@Copyright 2025 - Departamento de Cultura Custódia.</footer>
 
-<!-- PDF.js -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.9.359/pdf.min.js"></script>
-
 <script>
 /* ---------------- LOGIN ---------------- */
 function login() {
-    if (document.getElementById("loginID").value.trim() === "" ||
-        document.getElementById("loginSenha").value.trim() === "") {
+    const id = document.getElementById("loginID").value.trim();
+    const senha = document.getElementById("loginSenha").value.trim();
 
+    if (id === "" || senha === "") {
         alert("Por favor, insira ID e senha.");
         return;
     }
@@ -84,23 +149,21 @@ function salvar() {
 /* ---------------- PROCESSAR PDF ---------------- */
 async function processarPDF() {
     const file = document.getElementById("pdfInput").files[0];
-    if (!file) {
-        alert("Selecione um PDF.");
-        return;
-    }
 
-    const leitor = new FileReader();
+    if (!file) return alert("Selecione um PDF.");
 
-    leitor.onload = async function () {
+    const reader = new FileReader();
+
+    reader.onload = async function () {
         const array = new Uint8Array(this.result);
-        const pdf = await pdfjsLib.getDocument(array).promise;
+        const pdf = await pdfjsLib.getDocument({ data: array }).promise;
 
         let texto = "";
 
         for (let p = 1; p <= pdf.numPages; p++) {
             const pagina = await pdf.getPage(p);
-            const conteudo = await pagina.getTextContent();
-            texto += conteudo.items.map(i => i.str).join(" ") + "\n";
+            const content = await pagina.getTextContent();
+            texto += content.items.map(i => i.str).join(" ") + "\n";
         }
 
         dados.push({ conteudo: texto });
@@ -110,10 +173,10 @@ async function processarPDF() {
         alert("PDF extraído e listado com sucesso!");
     };
 
-    leitor.readAsArrayBuffer(file);
+    reader.readAsArrayBuffer(file);
 }
 
-/* ---------------- RENDERIZAÇÃO DA TABELA ---------------- */
+/* ---------------- RENDERIZA TABELA ---------------- */
 function renderTabela() {
     const filtro = document.getElementById("pesquisa").value.toLowerCase();
     const tbody = document.getElementById("tabela");
@@ -121,11 +184,11 @@ function renderTabela() {
     tbody.innerHTML = "";
 
     dados
-        .filter(item => item.conteudo.toLowerCase().includes(filtro))
+        .filter(x => x.conteudo.toLowerCase().includes(filtro))
         .forEach((item, index) => {
             tbody.innerHTML += `
                 <tr id="linha-${index}">
-                    <td id="texto-${index}" contenteditable="false">
+                    <td id="texto-${index}" contenteditable="false" style="max-width:400px; overflow-wrap:break-word;">
                         ${item.conteudo.replace(/\n/g, "<br>")}
                     </td>
                     <td>
@@ -142,7 +205,7 @@ function renderTabela() {
 function editar(i) {
     const campo = document.getElementById("texto-" + i);
     campo.contentEditable = "true";
-    campo.style.background = "#ffffd9";
+    campo.style.background = "#fff5c4";
     campo.focus();
 }
 
@@ -150,19 +213,19 @@ function editar(i) {
 function salvarEdicao(i) {
     const campo = document.getElementById("texto-" + i);
 
-    let textoEditado = campo.innerHTML
+    let texto = campo.innerHTML
         .replace(/<br>/g, "\n")
         .replace(/&nbsp;/g, " ")
         .trim();
 
-    dados[i].conteudo = textoEditado;
+    dados[i].conteudo = texto;
 
     campo.contentEditable = "false";
     campo.style.background = "white";
 
     salvar();
-    alert("Alteração salva com sucesso!");
     renderTabela();
+    alert("Alteração salva com sucesso!");
 }
 
 /* ---------------- EXCLUIR ---------------- */
